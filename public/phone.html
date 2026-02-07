@@ -294,10 +294,13 @@ sendYoutube.onclick = () => {
     return;
   }
 
-  socket.emit("message", {
-    type: "youtube",
-    content: videoId
-  });
+  var isVertical = url.includes("/shorts/")
+
+    socket.emit("message", {
+      type: "youtube",
+      content: videoId,
+      vertical: isVertical
+    });
 
   youtubeStatus.textContent = "Vidéo envoyée ✅";
   youtubeInput.value = "";
@@ -326,6 +329,11 @@ function extractYoutubeId(url) {
     // youtube.com/embed/ID
     if (u.pathname.includes("/embed/")) {
       return u.pathname.split("/embed/")[1];
+    }
+
+    // youtube.com/shorts/ID
+    if (u.pathname.includes("/shorts/")) {
+      return u.pathname.split("/shorts/")[1];
     }
 
     return null;
