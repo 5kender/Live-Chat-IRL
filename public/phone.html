@@ -1,139 +1,283 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <title>Phone</title>
-  <style>
-    canvas {
-      border: 1px solid black;
-      touch-action: none;
-      background: white;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phone</title>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: #000;
+    color: #fff;
+  }
+
+  .container {
+    max-width: 420px;
+    margin: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    opacity: 0.8;
+  }
+
+  input, button {
+    width: 100%;
+    font-size: 1rem;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+  }
+
+  input {
+    background: #111;
+    color: white;
+  }
+
+  button {
+    background: #1e1e1e;
+    color: white;
+    cursor: pointer;
+  }
+
+  button:active {
+    background: #333;
+  }
+
+  hr {
+    border: none;
+    height: 1px;
+    background: #222;
+  }
+
+  canvas {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: white;
+    border-radius: 8px;
+    touch-action: none;
+  }
+
+  .row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .row button {
+    flex: 1;
+  }
+
+  input[type="file"] {
+    display: none;
+  }
+</style>
 </head>
+
 <body>
+<div class="container">
 
   <!-- TEXTE -->
-  <input id="textInput" placeholder="Écris un message" />
-  <button id="sendText">Envoyer texte</button>
+  <h2>Texte</h2>
+  <input id="textInput" placeholder="Écris un message">
+  <button id="sendText">Envoyer le texte</button>
 
   <hr>
 
-  <!-- IMAGE -->
-  <input type="file" accept="image/*" id="fileInput">
-  <input type="file" accept="image/*" capture="environment" id="cameraInput">
+  <!-- PHOTOS -->
+  <h2>Photo</h2>
+
+  <button onclick="fileInput.click()">📁 Choisir une photo</button>
+  <button onclick="cameraInput.click()">📷 Prendre une photo</button>
+
+  <p id="photoStatus" style="opacity:0.7;font-size:0.9rem;">
+    Aucune photo sélectionnée
+  </p>
+
+  <button id="sendPhoto" disabled>➡️ Envoyer la photo</button>
+
+  <input id="fileInput" type="file" accept="image/*">
+  <input id="cameraInput" type="file" accept="image/*" capture="environment">
 
   <hr>
 
   <!-- DESSIN -->
-  <canvas id="canvas" width="300" height="300"></canvas><br>
-  <button id="clearCanvas">Effacer</button>
-  <button id="sendCanvas">Envoyer dessin</button>
+  <h2>Dessin</h2>
+  <canvas id="canvas" width="300" height="300"></canvas>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
+  <div class="row">
+    <button id="clearCanvas">Effacer</button>
+    <button id="sendCanvas">Envoyer</button>
+  </div>
 
-    // --- TEXTE ---
-    sendText.onclick = () => {
-      const text = textInput.value.trim();
-      if (text) {
-        socket.emit("message", { type: "text", content: text });
-        textInput.value = "";
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+
+/* -------- TEXTE -------- */
+sendText.onclick = () => {
+  const text = textInput.value.trim();
+  if (text) {
+    socket.emit("message", { type: "text", content: text });
+    textInput.value = "";
+  }
+};
+
+textInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    sendText.click();
+  }
+});
+
+/* -------- IMAGE -------- */
+let selectedImageFile = null;
+let compressedImageData = null;
+
+function onImageSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  selectedImageFile = file;
+  photoStatus.textContent = `Photo prête : ${file.name}`;
+
+  compressImage(file);
+}
+
+function compressImage(file) {
+  const img = new Image();
+  const reader = new FileReader();
+
+  reader.onload = e => {
+    img.onload = () => {
+      const MAX_SIZE = 800; // px
+      let { width, height } = img;
+
+      if (width > height && width > MAX_SIZE) {
+        height *= MAX_SIZE / width;
+        width = MAX_SIZE;
+      } else if (height > MAX_SIZE) {
+        width *= MAX_SIZE / height;
+        height = MAX_SIZE;
       }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+
+      compressedImageData = canvas.toDataURL("image/jpeg", 0.7);
+      photoStatus.textContent = `Photo prête (${Math.round(compressedImageData.length / 1024)} KB)`;
+      sendPhoto.disabled = false;
     };
 
-    // --- IMAGE ---
-    function handleImage(file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        socket.emit("message", {
-          type: "image",
-          content: reader.result
-        });
-      };
-      reader.readAsDataURL(file);
-    }
+    img.src = e.target.result;
+  };
 
-    fileInput.onchange = () => handleImage(fileInput.files[0]);
-    cameraInput.onchange = () => handleImage(cameraInput.files[0]);
+  reader.readAsDataURL(file);
+}
 
-    // --- DESSIN ---
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
+fileInput.onchange = () => onImageSelected(fileInput);
+cameraInput.onchange = () => onImageSelected(cameraInput);
 
-    ctx.lineWidth = 4;
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "black";
+sendPhoto.onclick = () => {
+  if (!compressedImageData) return;
 
-    let drawing = false;
+  socket.emit("message", {
+    type: "image",
+    content: compressedImageData
+  });
 
-    function getPos(e) {
-      if (e.touches) {
-        return {
-          x: e.touches[0].clientX - canvas.offsetLeft,
-          y: e.touches[0].clientY - canvas.offsetTop
-        };
-      }
-      return {
-        x: e.offsetX,
-        y: e.offsetY
-      };
-    }
+  photoStatus.textContent = "Photo envoyée ✅";
+  sendPhoto.disabled = true;
+  compressedImageData = null;
+  selectedImageFile = null;
+  fileInput.value = "";
+  cameraInput.value = "";
+};
 
-    canvas.addEventListener("mousedown", e => {
-      drawing = true;
-      const p = getPos(e);
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-    });
+/* -------- DESSIN -------- */
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-    canvas.addEventListener("mousemove", e => {
-      if (!drawing) return;
-      const p = getPos(e);
-      ctx.lineTo(p.x, p.y);
-      ctx.stroke();
-    });
+ctx.lineWidth = 4;
+ctx.lineCap = "round";
+ctx.strokeStyle = "black";
 
-    canvas.addEventListener("mouseup", () => drawing = false);
-    canvas.addEventListener("mouseleave", () => drawing = false);
+function clear() {
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
 
-    canvas.addEventListener("touchstart", e => {
-      drawing = true;
-      const p = getPos(e);
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-    });
+clear();
 
-    canvas.addEventListener("touchmove", e => {
-      e.preventDefault();
-      if (!drawing) return;
-      const p = getPos(e);
-      ctx.lineTo(p.x, p.y);
-      ctx.stroke();
-    });
+let drawing = false;
 
-    canvas.addEventListener("touchend", () => drawing = false);
+function pos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const t = e.touches ? e.touches[0] : e;
+  return {
+    x: (t.clientX - rect.left) * canvas.width / rect.width,
+    y: (t.clientY - rect.top) * canvas.height / rect.height
+  };
+}
 
-    // Effacer
-    clearCanvas.onclick = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    };
+canvas.onmousedown = e => {
+  drawing = true;
+  const p = pos(e);
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+};
 
-    // Envoyer dessin
-    sendCanvas.onclick = () => {
-      const data = canvas.toDataURL("image/png");
-      socket.emit("message", {
-        type: "image",
-        content: data
-      });
-      clearCanvas.onclick();
-    };
+canvas.onmousemove = e => {
+  if (!drawing) return;
+  const p = pos(e);
+  ctx.lineTo(p.x, p.y);
+  ctx.stroke();
+};
 
-    // Fond blanc au départ
-    clearCanvas.onclick();
-  </script>
+canvas.onmouseup = () => drawing = false;
+canvas.onmouseleave = () => drawing = false;
+
+canvas.ontouchstart = e => {
+  drawing = true;
+  const p = pos(e);
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+};
+
+canvas.ontouchmove = e => {
+  e.preventDefault();
+  if (!drawing) return;
+  const p = pos(e);
+  ctx.lineTo(p.x, p.y);
+  ctx.stroke();
+};
+
+canvas.ontouchend = () => drawing = false;
+
+clearCanvas.onclick = clear;
+
+sendCanvas.onclick = () => {
+  socket.emit("message", {
+    type: "image",
+    content: canvas.toDataURL("image/png")
+  });
+  clear();
+};
+</script>
 </body>
 </html>
