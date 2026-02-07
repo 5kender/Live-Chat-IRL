@@ -1,14 +1,28 @@
 body {
-  font-family: sans-serif;
   margin: 0;
+  font-family: sans-serif;
 }
 
 .tv {
   background: black;
   color: white;
-  font-size: 3rem;
+}
+
+#wall {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
 }
 
 .message {
+  font-size: 3rem;
   margin: 20px;
+}
+
+.image {
+  max-width: 40vw;
+  max-height: 40vh;
+  margin: 20px;
+  border-radius: 10px;
 }

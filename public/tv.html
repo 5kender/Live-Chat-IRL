@@ -14,10 +14,21 @@
     const wall = document.getElementById("wall");
 
     socket.on("message", (msg) => {
-      const div = document.createElement("div");
-      div.className = "message";
-      div.textContent = msg;
-      wall.appendChild(div);
+      let el;
+
+      if (msg.type === "text") {
+        el = document.createElement("div");
+        el.className = "message";
+        el.textContent = msg.content;
+      }
+
+      if (msg.type === "image") {
+        el = document.createElement("img");
+        el.src = msg.content;
+        el.className = "image";
+      }
+
+      wall.appendChild(el);
     });
   </script>
 </body>

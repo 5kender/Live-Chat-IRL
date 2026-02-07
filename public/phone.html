@@ -5,21 +5,46 @@
   <title>Phone</title>
 </head>
 <body>
-  <input id="input" placeholder="Écris un message" />
-  <button>Envoyer</button>
+  <input id="textInput" placeholder="Écris un message" />
+  <button id="sendText">Envoyer texte</button>
+
+  <br><br>
+
+  <!-- Galerie -->
+  <input type="file" accept="image/*" id="fileInput">
+
+  <br><br>
+
+  <!-- Caméra -->
+  <input type="file" accept="image/*" capture="environment" id="cameraInput">
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    const input = document.getElementById("input");
-    const button = document.querySelector("button");
 
-    button.onclick = () => {
-      if (input.value.trim()) {
-        socket.emit("message", input.value);
-        input.value = "";
+    // TEXTE
+    document.getElementById("sendText").onclick = () => {
+      const text = textInput.value.trim();
+      if (text) {
+        socket.emit("message", { type: "text", content: text });
+        textInput.value = "";
       }
     };
+
+    // IMAGE (galerie ou caméra)
+    function handleImage(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        socket.emit("message", {
+          type: "image",
+          content: reader.result
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    fileInput.onchange = () => handleImage(fileInput.files[0]);
+    cameraInput.onchange = () => handleImage(cameraInput.files[0]);
   </script>
 </body>
 </html>
