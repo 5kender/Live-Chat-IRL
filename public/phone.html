@@ -111,34 +111,19 @@
   
   <hr>
 
-  <!-- URL -->
+  <!-- URL / Youtube -->
 
-  <h2>Lien image / GIF</h2>
+  <h2>Lien (image / GIF / YouTube)</h2>
 
   <input
-    id="imageLinkInput"
-    placeholder="Colle un lien vers une image ou un GIF"
+    id="urlInput"
+    placeholder="Colle un lien (image, GIF, YouTube)"
   />
 
-  <button id="sendImageLink">Envoyer le lien</button>
+  <button id="sendUrl">Envoyer</button>
 
-  <p id="imageLinkStatus" style="opacity:0.7;font-size:0.9rem;">
+  <p id="urlStatus" style="opacity:0.7;font-size:0.9rem;">
     Aucun lien
-  </p>
-
-  <hr>
-
-  <h2>YouTube</h2>
-
-  <input
-    id="youtubeInput"
-    placeholder="Colle un lien YouTube"
-  />
-
-  <button id="sendYoutube">Envoyer la vidéo</button>
-
-  <p id="youtubeStatus" style="opacity:0.7;font-size:0.9rem;">
-    Aucune vidéo
   </p>
 
   <hr>
@@ -242,96 +227,67 @@ sendPhoto.onclick = () => {
 };
 
 /* ---------- URL --------- */
-sendImageLink.onclick = () => {
-  const url = imageLinkInput.value.trim();
+sendUrl.onclick = () => {
+  const url = urlInput.value.trim();
   if (!url) return;
 
-  const normalized = normalizeImageUrl(url);
+  const result = parseUrl(url);
 
-  if (!normalized) {
-    imageLinkStatus.textContent = "Lien non supporté ❌";
+  if (!result) {
+    urlStatus.textContent = "Lien non supporté ❌";
     return;
   }
 
-  socket.emit("message", {
-    type: "image",
-    content: normalized
-  });
+  socket.emit("message", result);
 
-  imageLinkStatus.textContent = "Lien envoyé ✅";
-  imageLinkInput.value = "";
+  urlStatus.textContent = "Lien envoyé ✅";
+  urlInput.value = "";
 };
 
-imageLinkInput.addEventListener("keydown", e => {
+urlInput.addEventListener("keydown", e => {
   if (e.key === "Enter") {
-    sendImageLink.click();
+    sendUrl.click();
   }
 });
 
-function normalizeImageUrl(url) {
-  // lien direct image
+function parseUrl(url) {
+  // ---------- YOUTUBE ----------
+  const ytId = extractYoutubeId(url);
+  if (ytId) {
+    return {
+      type: "youtube",
+      content: ytId,
+      vertical: url.includes("/shorts/")
+    };
+  }
 
-  return url
-
-  /*
-  if (url.match(/\.(png|jpe?g|gif|webp)(\?.*)?$/i)) {
-    return url;
+  // ---------- IMAGE DIRECTE ----------
+  if (url.match(/\.(png|jpe?g|gif|webp|svg|tiff)(\?.*)?$/i)) {
+    return {
+      type: "image",
+      content: url
+    };
   }
 
   return null;
-  */
 }
-
-/* -------- YOUTUBE ------- */
-
-sendYoutube.onclick = () => {
-  const url = youtubeInput.value.trim();
-  if (!url) return;
-
-  const videoId = extractYoutubeId(url);
-  if (!videoId) {
-    youtubeStatus.textContent = "Lien YouTube invalide ❌";
-    return;
-  }
-
-  var isVertical = url.includes("/shorts/")
-
-    socket.emit("message", {
-      type: "youtube",
-      content: videoId,
-      vertical: isVertical
-    });
-
-  youtubeStatus.textContent = "Vidéo envoyée ✅";
-  youtubeInput.value = "";
-};
-
-youtubeInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    sendYoutube.click();
-  }
-});
 
 function extractYoutubeId(url) {
   try {
     const u = new URL(url);
 
-    // youtu.be/ID
     if (u.hostname.includes("youtu.be")) {
       return u.pathname.slice(1);
     }
 
-    // youtube.com/watch?v=ID
     if (u.searchParams.get("v")) {
       return u.searchParams.get("v");
     }
 
-    // youtube.com/embed/ID
     if (u.pathname.includes("/embed/")) {
       return u.pathname.split("/embed/")[1];
     }
 
-    // youtube.com/shorts/ID
     if (u.pathname.includes("/shorts/")) {
       return u.pathname.split("/shorts/")[1];
     }
