@@ -3,27 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <title>Phone</title>
+  <style>
+    canvas {
+      border: 1px solid black;
+      touch-action: none;
+      background: white;
+    }
+  </style>
 </head>
 <body>
+
+  <!-- TEXTE -->
   <input id="textInput" placeholder="Écris un message" />
   <button id="sendText">Envoyer texte</button>
 
-  <br><br>
+  <hr>
 
-  <!-- Galerie -->
+  <!-- IMAGE -->
   <input type="file" accept="image/*" id="fileInput">
-
-  <br><br>
-
-  <!-- Caméra -->
   <input type="file" accept="image/*" capture="environment" id="cameraInput">
+
+  <hr>
+
+  <!-- DESSIN -->
+  <canvas id="canvas" width="300" height="300"></canvas><br>
+  <button id="clearCanvas">Effacer</button>
+  <button id="sendCanvas">Envoyer dessin</button>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
 
-    // TEXTE
-    document.getElementById("sendText").onclick = () => {
+    // --- TEXTE ---
+    sendText.onclick = () => {
       const text = textInput.value.trim();
       if (text) {
         socket.emit("message", { type: "text", content: text });
@@ -31,7 +43,7 @@
       }
     };
 
-    // IMAGE (galerie ou caméra)
+    // --- IMAGE ---
     function handleImage(file) {
       const reader = new FileReader();
       reader.onload = () => {
@@ -45,6 +57,83 @@
 
     fileInput.onchange = () => handleImage(fileInput.files[0]);
     cameraInput.onchange = () => handleImage(cameraInput.files[0]);
+
+    // --- DESSIN ---
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "black";
+
+    let drawing = false;
+
+    function getPos(e) {
+      if (e.touches) {
+        return {
+          x: e.touches[0].clientX - canvas.offsetLeft,
+          y: e.touches[0].clientY - canvas.offsetTop
+        };
+      }
+      return {
+        x: e.offsetX,
+        y: e.offsetY
+      };
+    }
+
+    canvas.addEventListener("mousedown", e => {
+      drawing = true;
+      const p = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+    });
+
+    canvas.addEventListener("mousemove", e => {
+      if (!drawing) return;
+      const p = getPos(e);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    });
+
+    canvas.addEventListener("mouseup", () => drawing = false);
+    canvas.addEventListener("mouseleave", () => drawing = false);
+
+    canvas.addEventListener("touchstart", e => {
+      drawing = true;
+      const p = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+    });
+
+    canvas.addEventListener("touchmove", e => {
+      e.preventDefault();
+      if (!drawing) return;
+      const p = getPos(e);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    });
+
+    canvas.addEventListener("touchend", () => drawing = false);
+
+    // Effacer
+    clearCanvas.onclick = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    };
+
+    // Envoyer dessin
+    sendCanvas.onclick = () => {
+      const data = canvas.toDataURL("image/png");
+      socket.emit("message", {
+        type: "image",
+        content: data
+      });
+      clearCanvas.onclick();
+    };
+
+    // Fond blanc au départ
+    clearCanvas.onclick();
   </script>
 </body>
 </html>
