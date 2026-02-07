@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Phone</title>
+</head>
+<body>
+  <input id="input" placeholder="Écris un message" />
+  <button>Envoyer</button>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const input = document.getElementById("input");
+    const button = document.querySelector("button");
+
+    button.onclick = () => {
+      if (input.value.trim()) {
+        socket.emit("message", input.value);
+        input.value = "";
+      }
+    };
+  </script>
+</body>
+</html>
