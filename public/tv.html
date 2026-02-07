@@ -14,21 +14,39 @@
     const wall = document.getElementById("wall");
 
     socket.on("message", (msg) => {
-      let el;
-
+      // TEXTE
       if (msg.type === "text") {
-        el = document.createElement("div");
+        const el = document.createElement("div");
         el.className = "message";
         el.textContent = msg.content;
+        wall.appendChild(el);
       }
 
-      if (msg.type === "image" || msg.type === "gif") {
-        el = document.createElement("img");
-        el.src = msg.content;
-        el.className = "image";
+      // IMAGE / GIF
+      if (msg.type === "image") {
+        const img = document.createElement("img");
+        img.src = msg.content;
+        img.className = "image";
+        wall.appendChild(img);
       }
 
-      wall.appendChild(el);
+      // YOUTUBE
+      if (msg.type === "youtube") {
+        const iframe = document.createElement("iframe");
+
+        // taille comme les images
+        iframe.width = "320"; // ou adapte selon ton CSS
+        iframe.height = "180"; // ratio 16:9
+        iframe.src = `https://www.youtube.com/embed/${msg.content}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playlist=${msg.content}&loop=1`;
+        iframe.allow = "autoplay; encrypted-media";
+        iframe.style.border = "none";
+        iframe.style.margin = "10px";
+        iframe.style.borderRadius = "8px";
+        iframe.className = "image"; // pour réutiliser le style image
+
+        wall.appendChild(iframe);
+      }
+
     });
   </script>
 </body>

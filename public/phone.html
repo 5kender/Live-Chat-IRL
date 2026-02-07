@@ -108,7 +108,7 @@
 
   <input id="fileInput" type="file" accept="image/*">
   <input id="cameraInput" type="file" accept="image/*" capture="environment">
-
+  
   <hr>
 
   <!-- URL -->
@@ -124,6 +124,21 @@
 
   <p id="imageLinkStatus" style="opacity:0.7;font-size:0.9rem;">
     Aucun lien
+  </p>
+
+  <hr>
+
+  <h2>YouTube</h2>
+
+  <input
+    id="youtubeInput"
+    placeholder="Colle un lien YouTube"
+  />
+
+  <button id="sendYoutube">Envoyer la vidéo</button>
+
+  <p id="youtubeStatus" style="opacity:0.7;font-size:0.9rem;">
+    Aucune vidéo
   </p>
 
   <hr>
@@ -265,6 +280,58 @@ function normalizeImageUrl(url) {
 
   return null;
   */
+}
+
+/* -------- YOUTUBE ------- */
+
+sendYoutube.onclick = () => {
+  const url = youtubeInput.value.trim();
+  if (!url) return;
+
+  const videoId = extractYoutubeId(url);
+  if (!videoId) {
+    youtubeStatus.textContent = "Lien YouTube invalide ❌";
+    return;
+  }
+
+  socket.emit("message", {
+    type: "youtube",
+    content: videoId
+  });
+
+  youtubeStatus.textContent = "Vidéo envoyée ✅";
+  youtubeInput.value = "";
+};
+
+youtubeInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    sendYoutube.click();
+  }
+});
+
+function extractYoutubeId(url) {
+  try {
+    const u = new URL(url);
+
+    // youtu.be/ID
+    if (u.hostname.includes("youtu.be")) {
+      return u.pathname.slice(1);
+    }
+
+    // youtube.com/watch?v=ID
+    if (u.searchParams.get("v")) {
+      return u.searchParams.get("v");
+    }
+
+    // youtube.com/embed/ID
+    if (u.pathname.includes("/embed/")) {
+      return u.pathname.split("/embed/")[1];
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /* -------- DESSIN -------- */
