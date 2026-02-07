@@ -22,7 +22,7 @@
         el.textContent = msg.content;
       }
 
-      if (msg.type === "image") {
+      if (msg.type === "image" || msg.type === "gif") {
         el = document.createElement("img");
         el.src = msg.content;
         el.className = "image";

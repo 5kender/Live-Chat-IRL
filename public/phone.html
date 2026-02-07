@@ -111,6 +111,23 @@
 
   <hr>
 
+  <!-- URL -->
+
+  <h2>Lien image / GIF</h2>
+
+  <input
+    id="imageLinkInput"
+    placeholder="Colle un lien vers une image ou un GIF"
+  />
+
+  <button id="sendImageLink">Envoyer le lien</button>
+
+  <p id="imageLinkStatus" style="opacity:0.7;font-size:0.9rem;">
+    Aucun lien
+  </p>
+
+  <hr>
+
   <!-- DESSIN -->
   <h2>Dessin</h2>
   <canvas id="canvas" width="300" height="300"></canvas>
@@ -208,6 +225,47 @@ sendPhoto.onclick = () => {
   fileInput.value = "";
   cameraInput.value = "";
 };
+
+/* ---------- URL --------- */
+sendImageLink.onclick = () => {
+  const url = imageLinkInput.value.trim();
+  if (!url) return;
+
+  const normalized = normalizeImageUrl(url);
+
+  if (!normalized) {
+    imageLinkStatus.textContent = "Lien non supporté ❌";
+    return;
+  }
+
+  socket.emit("message", {
+    type: "image",
+    content: normalized
+  });
+
+  imageLinkStatus.textContent = "Lien envoyé ✅";
+  imageLinkInput.value = "";
+};
+
+imageLinkInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    sendImageLink.click();
+  }
+});
+
+function normalizeImageUrl(url) {
+  // lien direct image
+
+  return url
+
+  /*
+  if (url.match(/\.(png|jpe?g|gif|webp)(\?.*)?$/i)) {
+    return url;
+  }
+
+  return null;
+  */
+}
 
 /* -------- DESSIN -------- */
 const canvas = document.getElementById("canvas");
