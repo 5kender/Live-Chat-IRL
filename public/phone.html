@@ -219,6 +219,7 @@ const sendStatus = document.getElementById('sendStatus');
 /* -------- IMAGE (file / camera) -------- */
 let selectedImageFile = null;
 let compressedImageData = null;
+let storedImagePath = null; // server-stored GIF path
 
 function onImageSelected(input) {
   const file = input.files[0];
@@ -227,7 +228,31 @@ function onImageSelected(input) {
   selectedImageFile = file;
   photoStatus.textContent = `Photo prête : ${file.name}`;
 
-  compressImage(file);
+  // Detect GIF
+  const isGif = file.type === 'image/gif' || /\.gif$/i.test(file.name);
+  if (isGif) {
+    // Upload GIF to server (no compression)
+    photoStatus.textContent = 'Upload GIF en cours...';
+    const fd = new FormData();
+    fd.append('file', file);
+    fetch('/upload-gif', { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(j => {
+        if (j && j.path) {
+          storedImagePath = j.path;
+          photoStatus.textContent = `GIF prêt (${Math.round(file.size / 1024)} KB)`;
+        } else {
+          photoStatus.textContent = 'Erreur upload GIF';
+        }
+      })
+      .catch(err => {
+        console.error('upload-gif error', err);
+        photoStatus.textContent = 'Erreur upload GIF';
+      });
+  } else {
+    // Non-GIF: compress client-side
+    compressImage(file);
+  }
 }
 
 function compressImage(file) {
@@ -452,8 +477,12 @@ sendAll.onclick = () => {
   let mediaSource = null; // 'file' | 'url' | 'canvas'
   let mediaVertical = false; // for YouTube shorts
 
-  // 1) image file (compressed)
-  if (compressedImageData) {
+  // 1) image file (stored GIF or compressed image)
+  if (storedImagePath) {
+    mediaType = 'image';
+    mediaContent = storedImagePath;
+    mediaSource = 'file';
+  } else if (compressedImageData) {
     mediaType = 'image';
     mediaContent = compressedImageData;
     mediaSource = 'file';
@@ -505,6 +534,7 @@ sendAll.onclick = () => {
   if (mediaSource === 'file') {
     photoStatus.textContent = 'Photo envoyée ✅';
     compressedImageData = null;
+    storedImagePath = null;
     selectedImageFile = null;
     fileInput.value = '';
     cameraInput.value = '';
