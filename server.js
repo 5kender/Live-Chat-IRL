@@ -36,6 +36,29 @@ app.post('/upload-gif', upload.single('file'), (req, res) => {
   }
 });
 
+// Endpoint to save drawing as PNG
+app.post('/upload-drawing', express.json({ limit: '50mb' }), (req, res) => {
+  try {
+    const { dataUrl } = req.body;
+    if (!dataUrl) return res.status(400).json({ error: 'no dataUrl' });
+
+    // Remove data URL prefix to get base64
+    const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+
+    const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}.png`;
+    const filepath = path.join(uploadsDir, filename);
+    
+    fs.writeFileSync(filepath, buffer);
+    
+    const publicPath = '/uploads/' + filename;
+    res.json({ path: publicPath });
+  } catch (err) {
+    console.error('upload-drawing error', err);
+    res.status(500).json({ error: 'upload failed' });
+  }
+});
+
 io.on("connection", (socket) => {
   socket.on("message", (msg) => {
     io.emit("message", msg); // envoie à tout le monde

@@ -220,6 +220,7 @@ const sendStatus = document.getElementById('sendStatus');
 let selectedImageFile = null;
 let compressedImageData = null;
 let storedImagePath = null; // server-stored GIF path
+let storedDrawingPath = null; // server-stored drawing path
 
 function onImageSelected(input) {
   const file = input.files[0];
@@ -502,11 +503,40 @@ sendAll.onclick = () => {
     }
   }
 
-  // 3) canvas drawing
+  // 3) canvas drawing - upload to server
   if (!mediaType && canvasHasDrawing) {
-    mediaType = 'image';
-    mediaContent = canvas.toDataURL('image/png');
-    mediaSource = 'canvas';
+    if (storedDrawingPath) {
+      // already uploaded
+      mediaType = 'image';
+      mediaContent = storedDrawingPath;
+      mediaSource = 'canvas';
+    } else {
+      // need to upload first
+      sendStatus.textContent = 'Upload dessin en cours...';
+      const dataUrl = canvas.toDataURL('image/png');
+      fetch('/upload-drawing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataUrl })
+      })
+        .then(r => r.json())
+        .then(j => {
+          if (j && j.path) {
+            storedDrawingPath = j.path;
+            mediaType = 'image';
+            mediaContent = storedDrawingPath;
+            mediaSource = 'canvas';
+            sendMessageWithMedia(text, mediaType, mediaContent, mediaVertical, mediaSource);
+          } else {
+            sendStatus.textContent = 'Erreur upload dessin';
+          }
+        })
+        .catch(err => {
+          console.error('upload-drawing error', err);
+          sendStatus.textContent = 'Erreur upload dessin';
+        });
+      return;
+    }
   }
 
   // nothing to send?
@@ -516,6 +546,10 @@ sendAll.onclick = () => {
     return;
   }
 
+  sendMessageWithMedia(text, mediaType, mediaContent, mediaVertical, mediaSource);
+};
+
+function sendMessageWithMedia(text, mediaType, mediaContent, mediaVertical, mediaSource) {
   // Build single message: if media exists, keep msg.type = mediaType and include optional text above it.
   // If no media, fallback to text-only message type 'text'.
   let msg = null;
@@ -532,7 +566,7 @@ sendAll.onclick = () => {
   if (text) textInput.value = '';
 
   if (mediaSource === 'file') {
-    photoStatus.textContent = 'Photo envoyée ✅';
+    sendStatus.textContent = 'Photo envoyée ✅';
     compressedImageData = null;
     storedImagePath = null;
     selectedImageFile = null;
@@ -541,15 +575,17 @@ sendAll.onclick = () => {
   }
 
   if (mediaSource === 'canvas') {
+    sendStatus.textContent = 'Dessin envoyé ✅';
     clearCanvasDrawing();
+    storedDrawingPath = null;
   }
 
   if (mediaSource === 'url') {
+    sendStatus.textContent = 'Lien envoyé ✅';
     urlInput.value = '';
     urlStatus.textContent = 'Lien envoyé ✅';
   }
 
-  sendStatus.textContent = 'Envoyé ✅';
   sendStatus.style.opacity = 0.8;
   setTimeout(() => { sendStatus.textContent = 'Rien à envoyer'; sendStatus.style.opacity = 0.7; }, 1500);
 };
