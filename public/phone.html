@@ -69,6 +69,46 @@
     touch-action: none;
   }
 
+  /* drawing controls */
+  .palette {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .colorBtn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 2px solid rgba(255,255,255,0.15);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.3) inset;
+    cursor: pointer;
+  }
+
+  .colorBtn.active {
+    outline: 3px solid rgba(255,255,255,0.15);
+    transform: translateY(-2px);
+  }
+
+  .sizes {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .sizeBtn {
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #111;
+    cursor: pointer;
+  }
+
+  .sizeBtn.active {
+    background: #fff;
+    color: #000;
+    transform: translateY(-2px);
+  }
+
   .row {
     display: flex;
     gap: 8px;
@@ -126,6 +166,25 @@
   <!-- DESSIN -->
   <h2>Dessin</h2>
   <canvas id="canvas" width="300" height="300"></canvas>
+
+  <!-- palette et tailles -->
+  <div class="palette" id="palette">
+    <button class="colorBtn" data-color="#000000" title="noir" style="background:#000000"></button>
+    <button class="colorBtn" data-color="#ffffff" title="blanc" style="background:#ffffff"></button>
+    <button class="colorBtn" data-color="#ff0000" title="rouge" style="background:#ff0000"></button>
+    <button class="colorBtn" data-color="#ff8000" title="orange" style="background:#ff8000"></button>
+    <button class="colorBtn" data-color="#ffff00" title="jaune" style="background:#ffff00"></button>
+    <button class="colorBtn" data-color="#00ff00" title="vert" style="background:#00ff00"></button>
+    <button class="colorBtn" data-color="#00ffff" title="cyan" style="background:#00ffff"></button>
+    <button class="colorBtn" data-color="#0000ff" title="bleu" style="background:#0000ff"></button>
+    <button class="colorBtn" data-color="#ff00ff" title="magenta" style="background:#ff00ff"></button>
+  </div>
+
+  <div class="sizes" id="sizes">
+    <button class="sizeBtn" data-size="1">●</button>
+    <button class="sizeBtn active" data-size="6">●●</button>
+    <button class="sizeBtn" data-size="24">●●●</button>
+  </div>
 
   <div class="row">
     <button id="clearCanvas">Effacer</button>
@@ -244,11 +303,18 @@ function extractYoutubeId(url) {
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-ctx.lineWidth = 4;
+// drawing settings
+let currentColor = '#000000';
+let currentSize = 6; // default medium
+
+ctx.lineWidth = currentSize;
 ctx.lineCap = 'round';
-ctx.strokeStyle = 'black';
+ctx.lineJoin = "round";
+ctx.strokeStyle = currentColor;
 
 let canvasHasDrawing = false;
+let startPos = null;
+let hasMoved = false;
 
 function clearCanvasDrawing() {
   ctx.fillStyle = 'white';
@@ -269,45 +335,101 @@ function pos(e) {
   };
 }
 
+
 canvas.onmousedown = e => {
   drawing = true;
+  hasMoved = false;
   const p = pos(e);
+  startPos = p;
   ctx.beginPath();
   ctx.moveTo(p.x, p.y);
+  ctx.strokeStyle = currentColor;
+  ctx.lineWidth = currentSize;
   canvasHasDrawing = true;
 };
 
 canvas.onmousemove = e => {
   if (!drawing) return;
+  hasMoved = true;
   const p = pos(e);
   ctx.lineTo(p.x, p.y);
   ctx.stroke();
   canvasHasDrawing = true;
 };
 
-canvas.onmouseup = () => drawing = false;
-canvas.onmouseleave = () => drawing = false;
+canvas.onmouseup = e => {
+  if (!hasMoved && startPos) {
+    // draw a single point
+    ctx.beginPath();
+    ctx.fillStyle = currentColor;
+    const r = Math.max(1, Math.floor(currentSize / 2));
+    ctx.arc(startPos.x, startPos.y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  drawing = false;
+};
+
+canvas.onmouseleave = () => { drawing = false; };
 
 canvas.ontouchstart = e => {
   drawing = true;
+  hasMoved = false;
   const p = pos(e);
+  startPos = p;
   ctx.beginPath();
   ctx.moveTo(p.x, p.y);
+  ctx.strokeStyle = currentColor;
+  ctx.lineWidth = currentSize;
   canvasHasDrawing = true;
 };
 
 canvas.ontouchmove = e => {
   e.preventDefault();
   if (!drawing) return;
+  hasMoved = true;
   const p = pos(e);
   ctx.lineTo(p.x, p.y);
   ctx.stroke();
   canvasHasDrawing = true;
 };
 
-canvas.ontouchend = () => drawing = false;
+canvas.ontouchend = e => {
+  if (!hasMoved && startPos) {
+    ctx.beginPath();
+    ctx.fillStyle = currentColor;
+    const r = Math.max(1, Math.floor(currentSize / 2));
+    ctx.arc(startPos.x, startPos.y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  drawing = false;
+};
 
 document.getElementById('clearCanvas').onclick = clearCanvasDrawing;
+
+// palette & size wiring
+function setActiveColor(color) {
+  currentColor = color;
+  ctx.strokeStyle = currentColor;
+  document.querySelectorAll('.colorBtn').forEach(b => b.classList.toggle('active', b.getAttribute('data-color') === color));
+}
+
+function setActiveSize(size) {
+  currentSize = Number(size);
+  ctx.lineWidth = currentSize;
+  document.querySelectorAll('.sizeBtn').forEach(b => b.classList.toggle('active', Number(b.getAttribute('data-size')) === currentSize));
+}
+
+document.querySelectorAll('.colorBtn').forEach(b => {
+  b.addEventListener('click', () => setActiveColor(b.getAttribute('data-color')));
+});
+
+document.querySelectorAll('.sizeBtn').forEach(b => {
+  b.addEventListener('click', () => setActiveSize(b.getAttribute('data-size')));
+});
+
+// initialize active selections
+setActiveColor(currentColor);
+setActiveSize(currentSize);
 
 /* -------- SINGLE SEND BUTTON (text OR media OR both) -------- */
 // Allow Enter in text and url inputs to trigger sendAll
