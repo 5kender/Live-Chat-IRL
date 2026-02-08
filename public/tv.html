@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>TV</title>
+  <title>Live Chat IRL - TV</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body class="tv">
@@ -57,7 +57,8 @@
           const iframe = document.createElement("iframe");
 
           // taille comme les images selon si c'est un short ou pas
-          if (msg.vertical) {
+          console.log("msg.vertical", msg.vertical);
+          if (msg.vertical === true) {
             iframe.width = "180"; // ou adapte selon ton CSS
             iframe.height = "320"; // ratio 9:16
           } else {

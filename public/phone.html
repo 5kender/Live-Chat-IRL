@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Phone</title>
+<title>Live Chat IRL</title>
 
 <style>
   * {
@@ -269,6 +269,13 @@ cameraInput.onchange = () => onImageSelected(cameraInput);
 
 /* ---------- URL / YouTube parsing --------- */
 function parseUrl(url) {
+  // validate URL first
+  try {
+    new URL(url);
+  } catch {
+    return null;
+  }
+
   const ytId = extractYoutubeId(url);
   if (ytId) {
     return {
@@ -278,11 +285,8 @@ function parseUrl(url) {
     };
   }
 
-  if (url.match(/\.(png|jpe?g|gif|webp|svg|tiff)(\?.*)?$/i)) {
-    return { type: 'image', content: url };
-  }
-
-  return null;
+  // For any other valid URL, treat it as an image (no extension regex)
+  return { type: 'image', content: url };
 }
 
 function extractYoutubeId(url) {
@@ -446,6 +450,7 @@ sendAll.onclick = () => {
   let mediaType = null;
   let mediaContent = null;
   let mediaSource = null; // 'file' | 'url' | 'canvas'
+  let mediaVertical = false; // for YouTube shorts
 
   // 1) image file (compressed)
   if (compressedImageData) {
@@ -462,6 +467,7 @@ sendAll.onclick = () => {
       if (result) {
         mediaType = result.type; // 'image' or 'youtube'
         mediaContent = result.content;
+        mediaVertical = result.vertical || false;
         mediaSource = 'url';
       }
     }
@@ -485,7 +491,7 @@ sendAll.onclick = () => {
   // If no media, fallback to text-only message type 'text'.
   let msg = null;
   if (mediaType) {
-    msg = { type: mediaType, content: mediaContent };
+    msg = { type: mediaType, content: mediaContent, vertical: mediaVertical };
     if (text) msg.text = text; // TV will render text above media
   } else {
     msg = { type: 'text', content: text };
