@@ -14,44 +14,67 @@
     const wall = document.getElementById("wall");
 
     socket.on("message", (msg) => {
-      // TEXTE
-      if (msg.type === "text") {
-        const el = document.createElement("div");
-        el.className = "message";
-        el.textContent = msg.content;
-        wall.appendChild(el);
-      }
+        // If message contains media and optional text, render text above media in one container.
+        // If it's text-only, keep previous behavior.
 
-      // IMAGE / GIF
-      if (msg.type === "image") {
-        const img = document.createElement("img");
-        img.src = msg.content;
-        img.className = "image";
-        wall.appendChild(img);
-      }
-
-      // YOUTUBE
-      if (msg.type === "youtube") {
-        const iframe = document.createElement("iframe");
-
-        // taille comme les images selon si c'est un short ou pas
-        if (msg.vertical) {
-          iframe.width = "180"; // ou adapte selon ton CSS
-          iframe.height = "320"; // ratio 9:16
-        } else {
-          iframe.width = "320"; // ou adapte selon ton CSS
-          iframe.height = "180"; // ratio 16:9
+        // TEXT-ONLY
+        if (msg.type === "text") {
+          const el = document.createElement("div");
+          el.className = "message";
+          el.textContent = msg.content;
+          wall.appendChild(el);
         }
 
-        iframe.src = `https://www.youtube.com/embed/${msg.content}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playlist=${msg.content}&loop=1`;
-        iframe.allow = "autoplay; encrypted-media";
-        iframe.style.border = "none";
-        iframe.style.margin = "10px";
-        iframe.style.borderRadius = "8px";
-        iframe.className = "image"; // pour réutiliser le style image
+        // IMAGE (may include msg.text)
+        if (msg.type === "image") {
+          const container = document.createElement('div');
+          // if there's text, render it above the image
+          if (msg.text) {
+            const t = document.createElement('div');
+            t.className = 'message';
+            t.textContent = msg.text;
+            container.appendChild(t);
+          }
 
-        wall.appendChild(iframe);
-      }
+          const img = document.createElement("img");
+          img.src = msg.content;
+          img.className = "image";
+          container.appendChild(img);
+
+          wall.appendChild(container);
+        }
+
+        // YOUTUBE (may include msg.text)
+        if (msg.type === "youtube") {
+          const container = document.createElement('div');
+          if (msg.text) {
+            const t = document.createElement('div');
+            t.className = 'message';
+            t.textContent = msg.text;
+            container.appendChild(t);
+          }
+
+          const iframe = document.createElement("iframe");
+
+          // taille comme les images selon si c'est un short ou pas
+          if (msg.vertical) {
+            iframe.width = "180"; // ou adapte selon ton CSS
+            iframe.height = "320"; // ratio 9:16
+          } else {
+            iframe.width = "320"; // ou adapte selon ton CSS
+            iframe.height = "180"; // ratio 16:9
+          }
+
+          iframe.src = `https://www.youtube.com/embed/${msg.content}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playlist=${msg.content}&loop=1`;
+          iframe.allow = "autoplay; encrypted-media";
+          iframe.style.border = "none";
+          iframe.style.margin = "10px";
+          iframe.style.borderRadius = "8px";
+          iframe.className = "image"; // pour réutiliser le style image
+
+          container.appendChild(iframe);
+          wall.appendChild(container);
+        }
 
     });
   </script>

@@ -316,57 +316,84 @@ urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendAll.click
 
 sendAll.onclick = () => {
   sendStatus.style.opacity = 1;
-  let sentAnything = false;
 
-  // Text
+  // collect text (may be empty)
   const text = textInput.value.trim();
-  if (text) {
-    socket.emit('message', { type: 'text', content: text });
-    textInput.value = '';
-    sentAnything = true;
+
+  // determine first available media in this order: image file, url (image|youtube), canvas drawing
+  let mediaType = null;
+  let mediaContent = null;
+  let mediaSource = null; // 'file' | 'url' | 'canvas'
+
+  // 1) image file (compressed)
+  if (compressedImageData) {
+    mediaType = 'image';
+    mediaContent = compressedImageData;
+    mediaSource = 'file';
   }
 
-  // URL / YouTube
-  const url = urlInput.value.trim();
-  if (url) {
-    const result = parseUrl(url);
-    if (result) {
-      socket.emit('message', result);
-      urlStatus.textContent = 'Lien envoyé ✅';
-      urlInput.value = '';
-      sentAnything = true;
-    } else {
-      urlStatus.textContent = 'Lien non supporté ❌';
+  // 2) URL (could be image or youtube)
+  if (!mediaType) {
+    const url = urlInput.value.trim();
+    if (url) {
+      const result = parseUrl(url);
+      if (result) {
+        mediaType = result.type; // 'image' or 'youtube'
+        mediaContent = result.content;
+        mediaSource = 'url';
+      }
     }
   }
 
-  // Photo (file or camera)
-  if (compressedImageData) {
-    socket.emit('message', { type: 'image', content: compressedImageData });
+  // 3) canvas drawing
+  if (!mediaType && canvasHasDrawing) {
+    mediaType = 'image';
+    mediaContent = canvas.toDataURL('image/png');
+    mediaSource = 'canvas';
+  }
+
+  // nothing to send?
+  if (!text && !mediaType) {
+    sendStatus.textContent = 'Rien à envoyer';
+    sendStatus.style.opacity = 0.8;
+    return;
+  }
+
+  // Build single message: if media exists, keep msg.type = mediaType and include optional text above it.
+  // If no media, fallback to text-only message type 'text'.
+  let msg = null;
+  if (mediaType) {
+    msg = { type: mediaType, content: mediaContent };
+    if (text) msg.text = text; // TV will render text above media
+  } else {
+    msg = { type: 'text', content: text };
+  }
+
+  socket.emit('message', msg);
+
+  // clear/feedback for the inputs we used
+  if (text) textInput.value = '';
+
+  if (mediaSource === 'file') {
     photoStatus.textContent = 'Photo envoyée ✅';
     compressedImageData = null;
     selectedImageFile = null;
     fileInput.value = '';
     cameraInput.value = '';
-    sentAnything = true;
   }
 
-  // Canvas drawing
-  if (canvasHasDrawing) {
-    socket.emit('message', { type: 'image', content: canvas.toDataURL('image/png') });
+  if (mediaSource === 'canvas') {
     clearCanvasDrawing();
-    sentAnything = true;
   }
 
-  if (!sentAnything) {
-    sendStatus.textContent = 'Rien à envoyer';
-    sendStatus.style.opacity = 0.8;
-  } else {
-    sendStatus.textContent = 'Envoyé ✅';
-    sendStatus.style.opacity = 0.8;
-    // small timeout to reset status if you want
-    setTimeout(() => { sendStatus.textContent = 'Rien à envoyer'; sendStatus.style.opacity = 0.7; }, 1500);
+  if (mediaSource === 'url') {
+    urlInput.value = '';
+    urlStatus.textContent = 'Lien envoyé ✅';
   }
+
+  sendStatus.textContent = 'Envoyé ✅';
+  sendStatus.style.opacity = 0.8;
+  setTimeout(() => { sendStatus.textContent = 'Rien à envoyer'; sendStatus.style.opacity = 0.7; }, 1500);
 };
 </script>
 </body>
