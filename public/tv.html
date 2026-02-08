@@ -18,7 +18,7 @@
     function appendWithLimitPosition(el) {
       // prepare for measurement
       el.style.position = 'absolute';
-      el.style.visibility = 'hidden';
+      el.style.opacity = '0';
       wall.appendChild(el);
 
       // measure sizes
@@ -35,7 +35,20 @@
 
       el.style.left = left + 'px';
       el.style.top = top + 'px';
-      el.style.visibility = 'visible';
+      
+      // set a slight random rotation
+      const angle = (Math.random() * 16) - 8; // -8deg to +8deg
+      el.style.setProperty('--angle', angle + 'deg');
+      
+      // fade in with opacity transition
+      el.style.transition = 'opacity 1500ms ease-out';
+      el.style.textAlign = '-webkit-center'; // for Safari
+
+
+      // trigger fade-in on next frame
+      requestAnimationFrame(() => {
+        el.style.opacity = '1';
+      });
     }
 
     socket.on("message", (msg) => {

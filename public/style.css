@@ -39,10 +39,9 @@ body.tv-centered #wall {
   max-width: 40vw; /* prevent text from being too wide */
   word-wrap: break-word;
   color: white;
-  text-align: center;
-  background: rgba(255,255,255,0.04);
   padding: 8px 12px;
   border-radius: 8px;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
 
 .item {
@@ -59,4 +58,10 @@ body.tv-centered #wall {
   object-fit: cover;
   display: block;
   border: solid black 2px;
+}
+
+/* apply random rotation from CSS variable */
+body.tv #wall > * {
+  transform: rotate(var(--angle, 0deg));
+  transform-origin: center;
 }
