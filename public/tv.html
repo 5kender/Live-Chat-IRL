@@ -13,6 +13,31 @@
     const socket = io();
     const wall = document.getElementById("wall");
 
+    // append element, place it at a random position fully inside #wall,
+    // enforce max 10 items and remove each after 30s
+    function appendWithLimitPosition(el) {
+      // prepare for measurement
+      el.style.position = 'absolute';
+      el.style.visibility = 'hidden';
+      wall.appendChild(el);
+
+      // measure sizes
+      const wallW = wall.clientWidth;
+      const wallH = wall.clientHeight;
+      const elW = el.offsetWidth;
+      const elH = el.offsetHeight;
+
+      const maxLeft = Math.max(0, wallW - elW);
+      const maxTop = Math.max(0, wallH - elH);
+
+      const left = Math.floor(Math.random() * (maxLeft + 1));
+      const top = Math.floor(Math.random() * (maxTop + 1));
+
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+      el.style.visibility = 'visible';
+    }
+
     socket.on("message", (msg) => {
         // If message contains media and optional text, render text above media in one container.
         // If it's text-only, keep previous behavior.
@@ -22,7 +47,7 @@
           const el = document.createElement("div");
           el.className = "message";
           el.textContent = msg.content;
-          wall.appendChild(el);
+          appendWithLimitPosition(el);
         }
 
         // IMAGE (may include msg.text)
@@ -37,11 +62,19 @@
           }
 
           const img = document.createElement("img");
-          img.src = msg.content;
           img.className = "image";
-          container.appendChild(img);
 
-          wall.appendChild(container);
+          img.onload = () => {
+            container.appendChild(img);
+            appendWithLimitPosition(container);
+          };
+
+          img.onerror = () => {
+            if (msg.text) appendWithLimitPosition(container);
+            else console.warn('Image failed to load, skipping display:', msg.content);
+          };
+
+          img.src = msg.content;
         }
 
         // YOUTUBE (may include msg.text)
@@ -74,7 +107,7 @@
           iframe.className = "image"; // pour réutiliser le style image
 
           container.appendChild(iframe);
-          wall.appendChild(container);
+          appendWithLimitPosition(container);
         }
 
     });

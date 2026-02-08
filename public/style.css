@@ -8,16 +8,21 @@ body {
   color: white;
 }
 
+/* full viewport container for absolutely positioned items */
 #wall {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden; /* keep elements inside viewport */
+  background: black;
 }
 
 .message {
   font-size: 3rem;
-  margin: 20px;
+  margin: 8px;
+  max-width: 40vw; /* prevent text from being too wide */
+  word-wrap: break-word;
+  color: white;
 }
 
 .image, iframe {
@@ -26,4 +31,5 @@ body {
   margin: 20px;
   border-radius: 10px;
   object-fit: cover;
+  border: solid black 2px;
 }
