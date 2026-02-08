@@ -1,35 +1,62 @@
+/* Base */
 body {
   margin: 0;
   font-family: sans-serif;
+  background: #000;
+  color: #fff;
+  height: 100%;
 }
 
-.tv {
-  background: black;
-  color: white;
-}
-
-/* full viewport container for absolutely positioned items */
-#wall {
+/* --- Layout variations --- */
+/* Random layout used by tv.html */
+body.tv #wall {
   position: relative;
   width: 100%;
   height: 100vh;
-  overflow: hidden; /* keep elements inside viewport */
+  overflow: hidden; /* items absolutely positioned inside */
   background: black;
 }
 
+/* Centered layout used by tv2.html */
+body.tv-centered #wall {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  align-content: center; /* center rows vertically when there's space */
+  height: calc(100vh - 20px - 25vh);
+  overflow: hidden;
+  gap: 20px;
+  /* space at bottom so newest items appear visually centered */
+  padding: 20px 20px 25vh 20px;
+  background: black;
+}
+
+/* Shared styles for messages and media */
 .message {
   font-size: 3rem;
   margin: 8px;
   max-width: 40vw; /* prevent text from being too wide */
   word-wrap: break-word;
   color: white;
+  text-align: center;
+  background: rgba(255,255,255,0.04);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .image, iframe {
   max-width: 40vw;
   max-height: 40vh;
-  margin: 20px;
   border-radius: 10px;
   object-fit: cover;
+  display: block;
   border: solid black 2px;
 }

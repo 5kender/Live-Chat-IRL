@@ -4,51 +4,9 @@
   <meta charset="UTF-8" />
   <title>Layout centré - Live Chat IRL</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    html,body { height:100%; margin:0; }
-    body { background:#000; color:#fff; font-family:system-ui, sans-serif; }
-    /* original centered layout: items centered, wrap, scroll when many */
-    #wall {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
-      align-content: center; /* center rows vertically when there's space */
-      height: calc(100vh - 20px - 25vh);
-      overflow: hidden; /* allow scroll when many items */
-      gap: 20px;
-      /* add extra bottom padding so newly appended items appear more centered vertically */
-      padding: 20px 20px 25vh 20px;
-    }
-
-    .message {
-      font-size: 3rem;
-      color: white;
-      max-width: 40vw;
-      word-wrap: break-word;
-      text-align: center;
-      padding: 8px 12px;
-      border-radius: 8px;
-    }
-
-    .image, iframe {
-      max-width: 40vw;
-      max-height: 40vh;
-      border-radius: 10px;
-      object-fit: cover;
-      display: block;
-    }
-
-    /* container for text+media keeps them stacked */
-    .item {
-      display:flex;
-      flex-direction: column;
-      align-items: center;
-      gap:8px;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="tv-centered">
   <div id="wall"></div>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -62,6 +20,14 @@
 
       // ensure newest visible
       wall.scrollTop = wall.scrollHeight;
+
+      // enforce max 20 items
+      while (wall.children.length > 20) {
+        const first = wall.firstElementChild;
+        if (!first) break;
+        if (first._removeTimeout) clearTimeout(first._removeTimeout);
+        wall.removeChild(first);
+      }
     }
 
     socket.on('message', msg => {
@@ -113,9 +79,9 @@
 
         const iframe = document.createElement('iframe');
         if (msg.vertical === true) {
-          iframe.width = '180'; iframe.height = '320';
+          iframe.width = '360'; iframe.height = '640';
         } else {
-          iframe.width = '320'; iframe.height = '180';
+          iframe.width = '640'; iframe.height = '360';
         }
         iframe.src = `https://www.youtube.com/embed/${msg.content}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playlist=${msg.content}&loop=1`;
         iframe.allow = 'autoplay; encrypted-media';

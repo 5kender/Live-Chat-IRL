@@ -92,18 +92,15 @@
           // taille comme les images selon si c'est un short ou pas
           console.log("msg.vertical", msg.vertical);
           if (msg.vertical === true) {
-            iframe.width = "180"; // ou adapte selon ton CSS
-            iframe.height = "320"; // ratio 9:16
+            iframe.width = "360"; // ou adapte selon ton CSS
+            iframe.height = "640"; // ratio 9:16
           } else {
-            iframe.width = "320"; // ou adapte selon ton CSS
-            iframe.height = "180"; // ratio 16:9
+            iframe.width = "640"; // ou adapte selon ton CSS
+            iframe.height = "360"; // ratio 16:9
           }
 
           iframe.src = `https://www.youtube.com/embed/${msg.content}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playlist=${msg.content}&loop=1`;
           iframe.allow = "autoplay; encrypted-media";
-          iframe.style.border = "none";
-          iframe.style.margin = "10px";
-          iframe.style.borderRadius = "8px";
           iframe.className = "image"; // pour réutiliser le style image
 
           container.appendChild(iframe);
