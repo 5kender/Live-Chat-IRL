@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Layout centré - Live Chat IRL</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    html,body { height:100%; margin:0; }
+    body { background:#000; color:#fff; font-family:system-ui, sans-serif; }
+    /* original centered layout: items centered, wrap, scroll when many */
+    #wall {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      align-content: center; /* center rows vertically when there's space */
+      height: calc(100vh - 20px - 25vh);
+      overflow: hidden; /* allow scroll when many items */
+      gap: 20px;
+      /* add extra bottom padding so newly appended items appear more centered vertically */
+      padding: 20px 20px 25vh 20px;
+    }
+
+    .message {
+      font-size: 3rem;
+      color: white;
+      max-width: 40vw;
+      word-wrap: break-word;
+      text-align: center;
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+
+    .image, iframe {
+      max-width: 40vw;
+      max-height: 40vh;
+      border-radius: 10px;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* container for text+media keeps them stacked */
+    .item {
+      display:flex;
+      flex-direction: column;
+      align-items: center;
+      gap:8px;
+    }
+  </style>
+</head>
+<body>
+  <div id="wall"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const wall = document.getElementById('wall');
+
+    // Append element and scroll to bottom to ensure newest messages are visible.
+    function appendWithLimit(el) {
+      wall.appendChild(el);
+
+      // ensure newest visible
+      wall.scrollTop = wall.scrollHeight;
+    }
+
+    socket.on('message', msg => {
+      // Build a container for text+media, or a single message for text-only
+      if (msg.type === 'text') {
+        const el = document.createElement('div');
+        el.className = 'message';
+        el.textContent = msg.content;
+        appendWithLimit(el);
+        return;
+      }
+
+      // for media messages build .item container and append accordingly
+      if (msg.type === 'image') {
+        const container = document.createElement('div');
+        container.className = 'item';
+        if (msg.text) {
+          const t = document.createElement('div');
+          t.className = 'message';
+          t.textContent = msg.text;
+          container.appendChild(t);
+        }
+
+        const img = document.createElement('img');
+        img.className = 'image';
+
+        img.onload = () => {
+          container.appendChild(img);
+          appendWithLimit(container);
+        };
+        img.onerror = () => {
+          if (msg.text) appendWithLimit(container);
+          else console.warn('Image failed to load, skipping:', msg.content);
+        };
+
+        img.src = msg.content;
+        return;
+      }
+
+      if (msg.type === 'youtube') {
+        const container = document.createElement('div');
+        container.className = 'item';
+        if (msg.text) {
+          const t = document.createElement('div');
+          t.className = 'message';
+          t.textContent = msg.text;
+          container.appendChild(t);
+        }
+
+        const iframe = document.createElement('iframe');
+        if (msg.vertical === true) {
+          iframe.width = '180'; iframe.height = '320';
+        } else {
+          iframe.width = '320'; iframe.height = '180';
+        }
+        iframe.src = `https://www.youtube.com/embed/${msg.content}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&playlist=${msg.content}&loop=1`;
+        iframe.allow = 'autoplay; encrypted-media';
+        iframe.className = 'image';
+        container.appendChild(iframe);
+        appendWithLimit(container);
+        return;
+      }
+    });
+  </script>
+</body>
+</html>
