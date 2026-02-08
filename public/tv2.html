@@ -14,6 +14,21 @@
     const socket = io();
     const wall = document.getElementById('wall');
 
+    // Handle keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      const key = e.key.toLowerCase();
+      
+      // Layout switching
+      if (key === '1') {
+        e.preventDefault();
+        window.location.href = '/tv.html';
+      }
+      if (key === '2') {
+        e.preventDefault();
+        window.location.href = '/tv2.html';
+      }
+    });
+
     // Append element and scroll to bottom to ensure newest messages are visible.
     function appendWithLimit(el) {
       wall.appendChild(el);

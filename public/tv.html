@@ -13,6 +13,21 @@
     const socket = io();
     const wall = document.getElementById("wall");
 
+    // Handle keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      const key = e.key.toLowerCase();
+      
+      // Layout switching
+      if (key === '1') {
+        e.preventDefault();
+        window.location.href = '/tv.html';
+      }
+      if (key === '2') {
+        e.preventDefault();
+        window.location.href = '/tv2.html';
+      }
+    });
+
     // append element, place it at a random position fully inside #wall,
     // enforce max 10 items and remove each after 30s
     function appendWithLimitPosition(el) {
