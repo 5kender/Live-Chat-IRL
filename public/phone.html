@@ -90,7 +90,6 @@
   <!-- TEXTE -->
   <h2>Texte</h2>
   <input id="textInput" placeholder="Écris un message">
-  <button id="sendText">Envoyer le texte</button>
 
   <hr>
 
@@ -103,8 +102,6 @@
   <p id="photoStatus" style="opacity:0.7;font-size:0.9rem;">
     Aucune photo sélectionnée
   </p>
-
-  <button id="sendPhoto" disabled>➡️ Envoyer la photo</button>
 
   <input id="fileInput" type="file" accept="image/*">
   <input id="cameraInput" type="file" accept="image/*" capture="environment">
@@ -120,8 +117,6 @@
     placeholder="Colle un lien (image, GIF, YouTube)"
   />
 
-  <button id="sendUrl">Envoyer</button>
-
   <p id="urlStatus" style="opacity:0.7;font-size:0.9rem;">
     Aucun lien
   </p>
@@ -134,8 +129,17 @@
 
   <div class="row">
     <button id="clearCanvas">Effacer</button>
-    <button id="sendCanvas">Envoyer</button>
   </div>
+
+  <hr>
+
+  <button id="sendAll" style="font-size:1.1rem;">
+    🚀 Envoyer
+  </button>
+
+  <p id="sendStatus" style="opacity:0.7;font-size:0.9rem;">
+    Rien à envoyer
+  </p>
 
 </div>
 
@@ -143,22 +147,17 @@
 <script>
 const socket = io();
 
-/* -------- TEXTE -------- */
-sendText.onclick = () => {
-  const text = textInput.value.trim();
-  if (text) {
-    socket.emit("message", { type: "text", content: text });
-    textInput.value = "";
-  }
-};
+// Elements
+const textInput = document.getElementById('textInput');
+const fileInput = document.getElementById('fileInput');
+const cameraInput = document.getElementById('cameraInput');
+const photoStatus = document.getElementById('photoStatus');
+const urlInput = document.getElementById('urlInput');
+const urlStatus = document.getElementById('urlStatus');
+const sendAll = document.getElementById('sendAll');
+const sendStatus = document.getElementById('sendStatus');
 
-textInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    sendText.click();
-  }
-});
-
-/* -------- IMAGE -------- */
+/* -------- IMAGE (file / camera) -------- */
 let selectedImageFile = null;
 let compressedImageData = null;
 
@@ -189,16 +188,15 @@ function compressImage(file) {
         height = MAX_SIZE;
       }
 
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
+      const tmp = document.createElement('canvas');
+      tmp.width = width;
+      tmp.height = height;
 
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, width, height);
+      const ctx2 = tmp.getContext('2d');
+      ctx2.drawImage(img, 0, 0, width, height);
 
-      compressedImageData = canvas.toDataURL("image/jpeg", 0.7);
+      compressedImageData = tmp.toDataURL('image/jpeg', 0.7);
       photoStatus.textContent = `Photo prête (${Math.round(compressedImageData.length / 1024)} KB)`;
-      sendPhoto.disabled = false;
     };
 
     img.src = e.target.result;
@@ -210,63 +208,19 @@ function compressImage(file) {
 fileInput.onchange = () => onImageSelected(fileInput);
 cameraInput.onchange = () => onImageSelected(cameraInput);
 
-sendPhoto.onclick = () => {
-  if (!compressedImageData) return;
-
-  socket.emit("message", {
-    type: "image",
-    content: compressedImageData
-  });
-
-  photoStatus.textContent = "Photo envoyée ✅";
-  sendPhoto.disabled = true;
-  compressedImageData = null;
-  selectedImageFile = null;
-  fileInput.value = "";
-  cameraInput.value = "";
-};
-
-/* ---------- URL --------- */
-sendUrl.onclick = () => {
-  const url = urlInput.value.trim();
-  if (!url) return;
-
-  const result = parseUrl(url);
-
-  if (!result) {
-    urlStatus.textContent = "Lien non supporté ❌";
-    return;
-  }
-
-  socket.emit("message", result);
-
-  urlStatus.textContent = "Lien envoyé ✅";
-  urlInput.value = "";
-};
-
-urlInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    sendUrl.click();
-  }
-});
-
+/* ---------- URL / YouTube parsing --------- */
 function parseUrl(url) {
-  // ---------- YOUTUBE ----------
   const ytId = extractYoutubeId(url);
   if (ytId) {
     return {
-      type: "youtube",
+      type: 'youtube',
       content: ytId,
-      vertical: url.includes("/shorts/")
+      vertical: url.includes('/shorts/')
     };
   }
 
-  // ---------- IMAGE DIRECTE ----------
   if (url.match(/\.(png|jpe?g|gif|webp|svg|tiff)(\?.*)?$/i)) {
-    return {
-      type: "image",
-      content: url
-    };
+    return { type: 'image', content: url };
   }
 
   return null;
@@ -276,42 +230,33 @@ function extractYoutubeId(url) {
   try {
     const u = new URL(url);
 
-    if (u.hostname.includes("youtu.be")) {
-      return u.pathname.slice(1);
-    }
-
-    if (u.searchParams.get("v")) {
-      return u.searchParams.get("v");
-    }
-
-    if (u.pathname.includes("/embed/")) {
-      return u.pathname.split("/embed/")[1];
-    }
-
-    if (u.pathname.includes("/shorts/")) {
-      return u.pathname.split("/shorts/")[1];
-    }
-
+    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1);
+    if (u.searchParams.get('v')) return u.searchParams.get('v');
+    if (u.pathname.includes('/embed/')) return u.pathname.split('/embed/')[1];
+    if (u.pathname.includes('/shorts/')) return u.pathname.split('/shorts/')[1];
     return null;
   } catch {
     return null;
   }
 }
 
-/* -------- DESSIN -------- */
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+/* -------- DESSIN (canvas) -------- */
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
 
 ctx.lineWidth = 4;
-ctx.lineCap = "round";
-ctx.strokeStyle = "black";
+ctx.lineCap = 'round';
+ctx.strokeStyle = 'black';
 
-function clear() {
-  ctx.fillStyle = "white";
+let canvasHasDrawing = false;
+
+function clearCanvasDrawing() {
+  ctx.fillStyle = 'white';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  canvasHasDrawing = false;
 }
 
-clear();
+clearCanvasDrawing();
 
 let drawing = false;
 
@@ -329,6 +274,7 @@ canvas.onmousedown = e => {
   const p = pos(e);
   ctx.beginPath();
   ctx.moveTo(p.x, p.y);
+  canvasHasDrawing = true;
 };
 
 canvas.onmousemove = e => {
@@ -336,6 +282,7 @@ canvas.onmousemove = e => {
   const p = pos(e);
   ctx.lineTo(p.x, p.y);
   ctx.stroke();
+  canvasHasDrawing = true;
 };
 
 canvas.onmouseup = () => drawing = false;
@@ -346,6 +293,7 @@ canvas.ontouchstart = e => {
   const p = pos(e);
   ctx.beginPath();
   ctx.moveTo(p.x, p.y);
+  canvasHasDrawing = true;
 };
 
 canvas.ontouchmove = e => {
@@ -354,18 +302,71 @@ canvas.ontouchmove = e => {
   const p = pos(e);
   ctx.lineTo(p.x, p.y);
   ctx.stroke();
+  canvasHasDrawing = true;
 };
 
 canvas.ontouchend = () => drawing = false;
 
-clearCanvas.onclick = clear;
+document.getElementById('clearCanvas').onclick = clearCanvasDrawing;
 
-sendCanvas.onclick = () => {
-  socket.emit("message", {
-    type: "image",
-    content: canvas.toDataURL("image/png")
-  });
-  clear();
+/* -------- SINGLE SEND BUTTON (text OR media OR both) -------- */
+// Allow Enter in text and url inputs to trigger sendAll
+textInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendAll.click(); });
+urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendAll.click(); });
+
+sendAll.onclick = () => {
+  sendStatus.style.opacity = 1;
+  let sentAnything = false;
+
+  // Text
+  const text = textInput.value.trim();
+  if (text) {
+    socket.emit('message', { type: 'text', content: text });
+    textInput.value = '';
+    sentAnything = true;
+  }
+
+  // URL / YouTube
+  const url = urlInput.value.trim();
+  if (url) {
+    const result = parseUrl(url);
+    if (result) {
+      socket.emit('message', result);
+      urlStatus.textContent = 'Lien envoyé ✅';
+      urlInput.value = '';
+      sentAnything = true;
+    } else {
+      urlStatus.textContent = 'Lien non supporté ❌';
+    }
+  }
+
+  // Photo (file or camera)
+  if (compressedImageData) {
+    socket.emit('message', { type: 'image', content: compressedImageData });
+    photoStatus.textContent = 'Photo envoyée ✅';
+    compressedImageData = null;
+    selectedImageFile = null;
+    fileInput.value = '';
+    cameraInput.value = '';
+    sentAnything = true;
+  }
+
+  // Canvas drawing
+  if (canvasHasDrawing) {
+    socket.emit('message', { type: 'image', content: canvas.toDataURL('image/png') });
+    clearCanvasDrawing();
+    sentAnything = true;
+  }
+
+  if (!sentAnything) {
+    sendStatus.textContent = 'Rien à envoyer';
+    sendStatus.style.opacity = 0.8;
+  } else {
+    sendStatus.textContent = 'Envoyé ✅';
+    sendStatus.style.opacity = 0.8;
+    // small timeout to reset status if you want
+    setTimeout(() => { sendStatus.textContent = 'Rien à envoyer'; sendStatus.style.opacity = 0.7; }, 1500);
+  }
 };
 </script>
 </body>
